@@ -1,15 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Shield, Mail, CheckCircle, RefreshCw } from 'lucide-react';
 
-const OTP = () => {
+const ForgotPasswordOTP = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   
   const inputRefs = useRef([]);
+  const email = localStorage.getItem('reset_email');
 
   // Timer countdown
   useEffect(() => {
@@ -24,23 +24,27 @@ const OTP = () => {
     return () => clearInterval(interval);
   }, [timer, canResend]);
 
+  // Redirect if no email
+  useEffect(() => {
+    if (!email) {
+      window.location.href = '/forgot-password';
+    }
+  }, [email]);
+
   const handleChange = (index, value) => {
-    // Only allow numbers
     if (!/^\d*$/.test(value)) return;
 
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // Take only the last digit
+    newOtp[index] = value.slice(-1);
     setOtp(newOtp);
     setError('');
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1].focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
-    // Handle backspace
     if (e.key === 'Backspace' && !otp[index] && index > 0) {
       inputRefs.current[index - 1].focus();
     }
@@ -55,7 +59,6 @@ const OTP = () => {
     const newOtp = pastedData.split('');
     setOtp([...newOtp, ...Array(6 - newOtp.length).fill('')]);
     
-    // Focus last filled input or next empty
     const nextIndex = Math.min(newOtp.length, 5);
     inputRefs.current[nextIndex].focus();
   };
@@ -72,32 +75,26 @@ const OTP = () => {
 
     setIsVerifying(true);
     
-    // TODO: Add OTP verification logic here
-    console.log('Verifying OTP:', otpString);
+    // TODO: Add OTP verification API call
+    console.log('Verifying OTP:', otpString, 'for email:', email);
     
     // Simulate API call
     setTimeout(() => {
       setIsVerifying(false);
-      setIsVerified(true);
-// Mark email verified and go back to register
-setTimeout(() => {
-  const email = localStorage.getItem("pending_email");
-  localStorage.setItem("email_verified", "true");
-  localStorage.setItem("verified_email", email);
-  window.location.href = "/register";
-}, 2000);
-
-
+      
+      // Save OTP verification status
+      localStorage.setItem('reset_otp_verified', 'true');
+      
+      // Redirect to reset password page
+      window.location.href = '/reset-password';
     }, 1500);
   };
 
   const handleResend = async () => {
-    const email = localStorage.getItem("pending_email");
-    
     console.log('Resending OTP to:', email);
     
     // TODO: Add actual API call to backend
-    // Example: await fetch('/api/auth/resend-otp', { 
+    // await fetch('/api/auth/forgot-password', { 
     //   method: 'POST', 
     //   body: JSON.stringify({ email }) 
     // })
@@ -110,26 +107,6 @@ setTimeout(() => {
     inputRefs.current[0].focus();
   };
 
-  if (isVerified) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center max-w-md w-full">
-          <div className="inline-block bg-green-100 rounded-full p-6 mb-6 animate-bounce">
-            <CheckCircle className="w-16 h-16 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Email Verified!</h2>
-          <p className="text-gray-600 mb-4">
-            Your account has been successfully verified.
-          </p>
-         <div className="animate-pulse text-blue-600">
-  Redirecting back to registration...
-</div>
-
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -141,8 +118,8 @@ setTimeout(() => {
             <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full p-4 mb-4">
               <Shield className="w-12 h-12 text-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Verify Email</h1>
-            <p className="text-blue-100">Enter the OTP sent to your email</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Verify OTP</h1>
+            <p className="text-blue-100">Enter the code sent to your email</p>
           </div>
 
           {/* Form Section */}
@@ -152,7 +129,7 @@ setTimeout(() => {
               <Mail className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="text-sm text-blue-700">
-                  We've sent a 6-digit verification code to your email address.
+                  We've sent a 6-digit code to <strong>{email}</strong>
                 </p>
               </div>
             </div>
@@ -228,13 +205,13 @@ setTimeout(() => {
               </button>
             </form>
 
-            {/* Back to Login */}
+            {/* Back Link */}
             <div className="mt-6 text-center">
               <a 
-                href="/login" 
+                href="/forgot-password" 
                 className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
               >
-                ← Back to Login
+                ← Change Email
               </a>
             </div>
           </div>
@@ -256,4 +233,4 @@ setTimeout(() => {
   );
 };
 
-export default OTP;
+export default ForgotPasswordOTP;

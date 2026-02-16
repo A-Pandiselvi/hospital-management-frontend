@@ -5,20 +5,20 @@ import { Outlet } from 'react-router-dom';
 
 const Layout = ({ children, role = 'patient', userName = 'John Doe' }) => {
 const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
-
+const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 // auto responsive
 useEffect(() => {
   const handleResize = () => {
-    if (window.innerWidth < 1024) {
-      setIsSidebarOpen(false);
-    } else {
-      setIsSidebarOpen(true);
-    }
+    const desktop = window.innerWidth >= 1024;
+    setIsDesktop(desktop);
+    setIsSidebarOpen(desktop);
   };
 
+  handleResize(); // run once
   window.addEventListener("resize", handleResize);
   return () => window.removeEventListener("resize", handleResize);
 }, []);
+
 
 
   
@@ -28,11 +28,16 @@ useEffect(() => {
       <Sidebar role={role} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       {/* Main Content Area */}
-      <div
-        className={`transition-all duration-300 ${
-          `lg:${isSidebarOpen ? 'ml-64' : 'ml-20'}`
-        }`}
-      >
+<div
+  className={`transition-all duration-300 ${
+    isDesktop
+      ? isSidebarOpen
+        ? 'ml-64'
+        : 'ml-20'
+      : 'ml-0'
+  }`}
+>
+
         {/* Navbar */}
         <Navbar 
           role={role} 

@@ -65,7 +65,7 @@ const handleMenuClick = (item) => {
       {/* Sidebar */}
       <aside
     className={`fixed left-0 top-0 h-full bg-gradient-to-b from-blue-900 to-blue-800 text-white z-40 transition-all duration-300
-${isOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}`}
+${isOpen ? 'translate-x-0 w-64' : '-translate-x-full'} lg:translate-x-0 ${isOpen ? 'lg:w-64' : 'lg:w-20'}`}
 
       >
         {/* Logo Section */}
@@ -124,7 +124,8 @@ ${isOpen ? 'translate-x-0 w-64' : '-translate-x-full lg:translate-x-0 lg:w-20'}`
         {/* Toggle Button */}
        <button
   onClick={() => setIsOpen(!isOpen)}
-  className="hidden lg:flex absolute -right-3 top-20 bg-blue-600 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-500 transition-colors items-center justify-center"
+className={`absolute -right-3 top-20 bg-blue-600 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-500 transition-colors items-center justify-center
+${isOpen ? 'flex' : 'hidden'} lg:flex`}
 >
 
           {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

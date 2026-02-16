@@ -42,6 +42,7 @@ const Navbar = ({ role = 'patient', userName = 'John Doe', setIsSidebarOpen }) =
   const handleLogout = () => {
     // TODO: Add logout logic here
     console.log('Logging out...');
+    localStorage.clear();
     window.location.href = '/login';
   };
 

@@ -5,6 +5,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './Auth/Login/Login.jsx'
 import Register from './Auth/Register/Register.jsx'
 import OTP from './Auth/OTP/OTP.jsx'
+import ForgotPassword from './Auth/ForgotPassword/ForgotPassword.jsx'
+import ForgotPasswordOTP from './Auth/ForgotPassword/ForgotPasswordOTP.jsx'
+import ResetPassword from './Auth/ForgotPassword/ResetPassword.jsx'
 import Layout from './Layout/Layout.jsx';
 import PatientDashboard from './PatientComponents/PatientDashboard.jsx';
 import DoctorDashboard from './DoctorComponents/DoctorDashboard.jsx';
@@ -33,6 +36,11 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-otp" element={<OTP />} />
+        
+        {/* Forgot Password Flow */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/forgot-password-otp" element={<ForgotPasswordOTP />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* ADMIN */}
         <Route path="/admin" element={

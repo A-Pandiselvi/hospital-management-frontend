@@ -124,7 +124,7 @@ const handleSubmit = (e) => {
 
               {/* Forgot Password Link */}
               <div className="flex items-center justify-end">
-                <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                <a href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
                   Forgot Password?
                 </a>
               </div>
