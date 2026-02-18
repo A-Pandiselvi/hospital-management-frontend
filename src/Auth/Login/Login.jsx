@@ -1,172 +1,202 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn, Hospital, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { users } from '../../users';
-
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
-const navigate = useNavigate();
-const handleSubmit = (e) => {
-  e.preventDefault();
+  const navigate = useNavigate();
 
-  const newErrors = {};
-  if (!email) newErrors.email = 'Email is required';
-  if (!password) newErrors.password = 'Password is required';
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const newErrors = {};
+    if (!email) newErrors.email = 'Email is required';
+    if (!password) newErrors.password = 'Password is required';
 
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    return;
-  }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
 
-  // check static users
-  const foundUser = users.find(
-    (u) => u.email === email && u.password === password
-  );
+    const foundUser = users.find(
+      (u) => u.email === email && u.password === password
+    );
 
-  if (!foundUser) {
-    setErrors({ password: "Invalid email or password" });
-    return;
-  }
+    if (!foundUser) {
+      setErrors({ password: "Invalid email or password" });
+      return;
+    }
 
-  // save session
-  localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("role", foundUser.role);
-  localStorage.setItem("userName", foundUser.name);
-
-  // redirect (IMPORTANT — no window.location)
-  navigate(`/${foundUser.role}/dashboard`);
-};
-
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("role", foundUser.role);
+    localStorage.setItem("userName", foundUser.name);
+    navigate(`/${foundUser.role}/dashboard`);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          
-          {/* Header Section */}
-          <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-8 text-center">
-            <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full p-4 mb-4">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-            </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-blue-100">Hospital Management System</p>
+    <>
+   <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
+
+      {/* Main Container */}
+      <div className="max-w-5xl w-full bg-white border border-blue-300 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
+        
+<div className="w-full md:w-1/2 bg-gradient-to-b from-blue-900 to-blue-800 p-8 text-white flex flex-col justify-between relative overflow-hidden">
+
+  {/* Animated Decorative Blobs */}
+  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+  <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-cyan-300/20 rounded-full blur-3xl animate-bounce [animation-duration:6s]"></div>
+  
+  <div className="relative z-10">
+    {/* Floating Icon Animation */}
+    <div className="flex items-center space-x-3 mb-10 animate-[bounce_3s_infinite]">
+      <div className="bg-white/20 backdrop-blur-xl p-3 rounded-2xl shadow-inner border border-white/30">
+        <Hospital className="h-10 w-10 text-white" />
+      </div>
+      <span className="text-3xl font-black tracking-tighter uppercase italic">MediFlow</span>
+    </div>
+    
+    {/* Staggered Entrance Text */}
+    <div className="space-y-6 animate-[fadeIn_1s_ease-out]">
+      <h2 className="text-5xl font-extrabold leading-[1.1] tracking-tight">
+        Better Care <br /> 
+        <span className="text-cyan-200">Starts Here.</span>
+      </h2>
+      
+      <div className="h-1 w-20 bg-cyan-300 rounded-full animate-[stretch_2s_ease-in-out_infinite]"></div>
+      
+      <p className="text-blue-50 text-lg max-w-sm leading-relaxed opacity-90">
+        The most intuitive hospital management system designed for modern healthcare professionals.
+      </p>
+    </div>
+  </div>
+
+  {/* Glassmorphism Badge at bottom */}
+  <div className="relative z-10 mt-auto pt-8">
+    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex items-center space-x-4">
+      <div className="flex -space-x-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="w-8 h-8 rounded-full border-2 border-blue-500 bg-blue-100 flex items-center justify-center text-[10px] text-blue-600 font-bold">
+            DR
+          </div>
+        ))}
+      </div>
+      <p className="text-xs font-medium text-blue-50">Trusted by 500+ Medical Staff</p>
+    </div>
+  </div>
+</div>
+
+        {/* Right Side: Form Section */}
+       <div className="w-full md:w-1/2 p-8 md:p-10 bg-blue-50 flex flex-col justify-center">
+          <div className="mb-10">
+            <h3 className="text-3xl font-bold text-gray-900 mb-2">Sign In</h3>
+            <p className="text-gray-500 font-medium">Please enter your credentials to continue</p>
           </div>
 
-          {/* Form Section */}
-          <div className="p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
-              {/* Email Input */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                      errors.email ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    placeholder="Enter your email"
-                  />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Email Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-gray-700 uppercase tracking-wider ml-1">
+                Email Address
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className={`h-5 w-5 transition-colors ${errors.email ? 'text-red-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
                 </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                )}
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`w-full pl-12 pr-4 py-3 bg-gray-50 border-2 rounded-xl outline-none transition-all duration-200 ${
+                    errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500 focus:bg-white'
+                  }`}
+                  placeholder="name@hospital.com"
+                />
               </div>
+              {errors.email && <p className="text-xs font-bold text-red-500 ml-1">{errors.email}</p>}
+            </div>
 
-              {/* Password Input */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+            {/* Password Input */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center px-1">
+                <label className="text-sm font-bold text-gray-700 uppercase tracking-wider">
                   Password
                 </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                      errors.password ? 'border-red-500' : 'border-gray-200'
-                    }`}
-                    placeholder="Enter your password"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                )}
-              </div>
-
-              {/* Forgot Password Link */}
-              <div className="flex items-center justify-end">
-                <a href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                  Forgot Password?
+                <a href="/forgot-password" hidden={false} className="text-xs font-bold text-blue-600 hover:text-cyan-600 transition-colors">
+                  Forgot?
                 </a>
               </div>
-
-              {/* Login Button */}
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg flex items-center justify-center space-x-2"
-              >
-                <LogIn className="h-5 w-5" />
-                <span>Sign In</span>
-              </button>
-            </form>
-
-            {/* Divider */}
-            <div className="mt-8 relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className={`h-5 w-5 transition-colors ${errors.password ? 'text-red-400' : 'text-gray-400 group-focus-within:text-blue-500'}`} />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full pl-12 pr-12 py-3 bg-gray-50 border-2 rounded-xl outline-none transition-all duration-200 ${
+                    errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500 focus:bg-white'
+                  }`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-blue-600"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">New to our platform?</span>
-              </div>
+              {errors.password && <p className="text-xs font-bold text-red-500 ml-1">{errors.password}</p>}
             </div>
 
-            {/* Register Link */}
-            <div className="mt-6 text-center">
-              <a 
-                href="/register" 
-                className="text-blue-600 hover:text-blue-500 font-semibold transition-colors"
-              >
-                Create an Account →
-              </a>
-            </div>
+            {/* Login Button */}
+            <button
+              type="submit"
+            className="w-full bg-blue-800 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-blue-900/40 flex items-center justify-center space-x-2 mt-4"
+
+            >
+              <span>Sign In to Dashboard</span>
+              <ArrowRight className="h-5 w-5" />
+            </button>
+          </form>
+
+          {/* Footer */}
+          <div className="mt-10 text-center">
+            <p className="text-gray-500">
+              Don't have an account?{' '}
+             <button
+  type="button"
+  onClick={() => {
+    localStorage.removeItem("email_verified");
+    localStorage.removeItem("verified_email");
+    localStorage.removeItem("pending_email");
+    navigate("/register");
+  }}
+  className="text-blue-600 font-bold hover:underline"
+>
+  Contact Administrator
+</button>
+
+            </p>
           </div>
         </div>
-
-        {/* Footer Text */}
-        <p className="text-center text-gray-500 text-sm mt-6">
-          © 2026 Hospital Management System. All rights reserved.
-        </p>
       </div>
     </div>
+    <style>
+      ${`
+      @keyframes stretch {
+    0%, 100% { width: 5rem; }
+    50% { width: 8rem; }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }`}
+    </style>
+    </>
   );
 };
 
