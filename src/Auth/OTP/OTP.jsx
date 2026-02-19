@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Shield, Mail, CheckCircle, RefreshCw, ArrowLeft, Hospital } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../../Axios/AxiosInstance';
+import ToastMsg from '../../Toast/ToastMsg';
 
 const OTP = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -10,6 +12,7 @@ const OTP = () => {
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const navigate = useNavigate();
+  const [resendLoading, setResendLoading] = useState(false);
   const inputRefs = useRef([]);
 const otpString = otp.join('');
   // Timer countdown
@@ -58,42 +61,69 @@ useEffect(() => {
 
 const handleSubmit = async (e) => {
   e.preventDefault();
+
   const otpString = otp.join('');
+  const email = localStorage.getItem("pending_email");
 
   if (otpString.length !== 6) {
-    setError('Please enter all 6 digits');
+    setError("Please enter all 6 digits");
     return;
   }
 
-  setIsVerifying(true);
+  try {
+    setIsVerifying(true);
 
-  setTimeout(() => {
-    const email = localStorage.getItem("pending_email");
+    const response = await axiosInstance.post("/auth/verify-otp", {
+      email,
+      otp: otpString
+    });
+
+    ToastMsg("success", response.data.message || "Email verified");
 
     localStorage.setItem("email_verified", "true");
     localStorage.setItem("verified_email", email);
 
-    setIsVerifying(false);
+    navigate("/register");
 
-    navigate("/register");   // 👈 directly go to register
-  }, 1500);
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Invalid or expired OTP";
+
+    ToastMsg("error", message);
+  } finally {
+    setIsVerifying(false);
+  }
 };
 
 
-const handleResend = () => {
-  setTimer(60);
-  setCanResend(false);
-  setOtp(['', '', '', '', '', '']);
-  setError('');
-  setIsVerified(false);
-  setIsVerifying(false);
+const handleResend = async () => {
+  const email = localStorage.getItem("pending_email");
 
-  // Focus first box after reset
-  setTimeout(() => {
-    if (inputRefs.current[0]) {
-      inputRefs.current[0].focus();
-    }
-  }, 0);
+  if (!email) {
+    ToastMsg("error", "Email not found. Please register again.");
+    return;
+  }
+
+  try {
+    setResendLoading(true);   // 🔥 START loading
+
+    const response = await axiosInstance.post("/auth/resend-otp", {
+      email,
+    });
+
+    ToastMsg("success", response.data.message || "OTP resent successfully");
+
+    setTimer(60);
+    setCanResend(false);
+    setOtp(["", "", "", "", "", ""]);
+
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Failed to resend OTP";
+    ToastMsg("error", message);
+  } finally {
+    setResendLoading(false);   // 🔥 STOP loading automatically
+  }
 };
 
 
@@ -198,14 +228,30 @@ const handleResend = () => {
                     Resend in <span className="text-blue-600">{timer}s</span>
                   </p>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    className="group text-blue-600 font-bold flex items-center justify-center space-x-2 mx-auto hover:text-cyan-600 transition-colors"
-                  >
-                    <RefreshCw className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
-                    <span>Send New Code</span>
-                  </button>
+                 <button
+  type="button"
+  onClick={handleResend}
+  disabled={resendLoading}
+  className={`group font-bold flex items-center justify-center space-x-2 mx-auto transition-colors
+    ${
+      resendLoading
+        ? "text-gray-400 cursor-not-allowed"
+        : "text-blue-600 hover:text-cyan-600"
+    }`}
+>
+  {resendLoading ? (
+    <>
+      <RefreshCw className="h-4 w-4 animate-spin" />
+      <span>Sending...</span>
+    </>
+  ) : (
+    <>
+      <RefreshCw className="h-4 w-4 group-hover:rotate-180 transition-transform duration-500" />
+      <span>Send New Code</span>
+    </>
+  )}
+</button>
+
                 )}
               </div>
             </div>

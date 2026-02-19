@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, Hospital, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { users } from '../../users';
+import axiosInstance from '../../Axios/AxiosInstance';
+import ToastMsg from '../../Toast/ToastMsg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,32 +10,64 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = {};
-    if (!email) newErrors.email = 'Email is required';
-    if (!password) newErrors.password = 'Password is required';
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
 
-    const foundUser = users.find(
-      (u) => u.email === email && u.password === password
-    );
+  if (!trimmedEmail || !trimmedPassword) {
+    ToastMsg("warning", "Email and Password are required");
+    return;
+  }
 
-    if (!foundUser) {
-      setErrors({ password: "Invalid email or password" });
-      return;
-    }
+  try {
+    setLoading(true);
 
+    const response = await axiosInstance.post("/auth/login", {
+      email: trimmedEmail,
+      password: trimmedPassword,
+    });
+
+    const { token, role } = response.data;
+
+    // Save Auth Data
+    localStorage.setItem("token", token);
+    localStorage.setItem("role", role);
     localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("role", foundUser.role);
-    localStorage.setItem("userName", foundUser.name);
-    navigate(`/${foundUser.role}/dashboard`);
-  };
+
+    ToastMsg("success", "Login successful 🎉");
+
+    navigate(`/${role}/dashboard`, { replace: true });
+
+  } catch (error) {
+
+    // Network Error
+    if (!error.response) {
+      ToastMsg("error", "Network error. Please try again.");
+      return;
+    }
+
+    const message = error.response?.data?.message;
+
+    if (message === "Invalid credentials") {
+      ToastMsg("error", "Email not registered or password incorrect");
+    } 
+    else if (message === "Please verify email first") {
+      ToastMsg("warning", "Please verify your email first");
+    } 
+    else {
+      ToastMsg("error", message || "Login failed. Try again.");
+    }
+
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   return (
     <>
@@ -154,13 +187,27 @@ const Login = () => {
 
             {/* Login Button */}
             <button
-              type="submit"
-            className="w-full bg-blue-800 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-blue-900/40 flex items-center justify-center space-x-2 mt-4"
+  type="submit"
+  disabled={loading}
+  className={`w-full py-3 rounded-xl font-bold transition-all duration-300 shadow-xl flex items-center justify-center space-x-2 mt-4
+    ${loading 
+      ? "bg-gray-400 cursor-not-allowed text-white" 
+      : "bg-blue-800 hover:bg-blue-700 text-white shadow-blue-900/40"
+    }`}
+>
+  {loading ? (
+    <div className="flex items-center space-x-2">
+      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+      <span>Logging in...</span>
+    </div>
+  ) : (
+    <>
+      <span>Sign In to Dashboard</span>
+      <ArrowRight className="h-5 w-5" />
+    </>
+  )}
+</button>
 
-            >
-              <span>Sign In to Dashboard</span>
-              <ArrowRight className="h-5 w-5" />
-            </button>
           </form>
 
           {/* Footer */}

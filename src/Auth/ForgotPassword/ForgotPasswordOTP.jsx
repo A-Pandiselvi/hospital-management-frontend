@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Shield, Mail, CheckCircle, RefreshCw, Hospital, ChevronLeft, Lock } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import axiosInstance from '../../Axios/AxiosInstance';
+import ToastMsg from '../../Toast/ToastMsg';
+
 const ForgotPasswordOTP = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState('');
@@ -63,29 +66,67 @@ useEffect(() => {
     inputRefs.current[nextIndex].focus();
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const otpString = otp.join('');
-    if (otpString.length !== 6) {
-      setError('Please enter all 6 digits');
-      return;
-    }
-    setIsVerifying(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsVerifying(false);
-      localStorage.setItem('reset_otp_verified', 'true');
-      navigate('/reset-password');
-    }, 1500);
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleResend = async () => {
+  const otpString = otp.join("");
+
+  if (otpString.length !== 6) {
+    setError("Please enter all 6 digits");
+    ToastMsg("warning", "Enter complete OTP");
+    return;
+  }
+
+  try {
+    setIsVerifying(true);
+const response = await axiosInstance.post("/auth/verify-reset-otp", {
+  email,
+  otp: otpString
+});
+
+    ToastMsg("success", response.data.message || "OTP verified");
+
+    localStorage.setItem("reset_otp_verified", "true");
+
+    navigate("/reset-password");
+
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Invalid or expired OTP";
+    ToastMsg("error", message);
+  } finally {
+    setIsVerifying(false);
+  }
+};
+
+const handleResend = async () => {
+  try {
+    setIsVerifying(true);
+
+    const response = await axiosInstance.post("auth/resend-reset-otp", {
+      email,
+    });
+
+    ToastMsg("success", response.data.message || "OTP resent successfully");
+
+    // reset timer
     setTimer(60);
     setCanResend(false);
-    setOtp(['', '', '', '', '', '']);
-    inputRefs.current[0].focus();
-  };
+    setOtp(["", "", "", "", "", ""]);
+
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Failed to resend OTP";
+    ToastMsg("error", message);
+  } finally {
+    setIsVerifying(false);
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">

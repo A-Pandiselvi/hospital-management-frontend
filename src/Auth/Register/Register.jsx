@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { User, Mail, UserPlus, CheckCircle, Lock, ShieldCheck, Hospital, ArrowRight ,EyeOff,Eye} from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import axiosInstance from '../../Axios/AxiosInstance';
+import ToastMsg from '../../Toast/ToastMsg';
+
 const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -8,15 +11,17 @@ const Register = () => {
     password: '',
     confirmPassword: ''
   });
+  const [verifyLoading, setVerifyLoading] = useState(false);
+const [resendLoading, setResendLoading] = useState(false);
+
 const navigate = useNavigate();
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState({
   password: false,
   confirmPassword: false
 });
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-
+const [loading, setLoading] = useState(false);
   useEffect(() => {
     const verified = localStorage.getItem("email_verified");
     const email = localStorage.getItem("verified_email");
@@ -34,38 +39,119 @@ const navigate = useNavigate();
     }
   };
 
-  const handleVerifyEmail = () => {
-    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
-      setErrors({ email: "Please enter a valid business email" });
-      return;
-    }
-    localStorage.setItem("pending_email", formData.email);
+const handleVerifyEmail = async () => {
+  const trimmedEmail = formData.email.trim();
+
+  if (!trimmedEmail || !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+    setErrors({ email: "Please enter a valid email address" });
+    ToastMsg("warning", "Please enter a valid email address.");
+    return;
+  }
+
+  try {
+    setVerifyLoading(true);   // 🔥 START loading
+
+    const response = await axiosInstance.post("/auth/register", {
+      email: trimmedEmail
+    });
+
+    ToastMsg("success", response.data.message || "OTP sent to email");
+
+    localStorage.setItem("pending_email", trimmedEmail);
+
     navigate("/verify-otp");
-  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!isVerified) {
-      alert("Please verify your email first");
-      return;
-    }
+  } catch (error) {
+    const message = error.response?.data?.message || "Something went wrong";
+    ToastMsg("error", message);
+  } finally {
+    setVerifyLoading(false);   // 🔥 STOP loading automatically
+  }
+};
 
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Full name is required';
-    if (formData.password.length < 6) newErrors.password = 'Password must be 6+ chars';
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match';
 
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    console.log("Account Created:", formData);
-    localStorage.removeItem("email_verified");
-    localStorage.removeItem("verified_email");
+  if (!isVerified) {
+    ToastMsg("warning", "Please verify your email before registering.");
+    return;
+  }
+
+  const { name, email, password, confirmPassword } = formData;
+
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+
+  // 🔴 Name validation
+  if (!name.trim()) {
+    setErrors({ name: "Full name is required" });
+    ToastMsg("warning", "Full name is required.");
+    return;
+  }
+
+  // 🔴 Password validation
+  if (!password) {
+    setErrors({ password: "Password is required" });
+    ToastMsg("warning", "Password is required.");
+    return;
+  }
+
+  if (!passwordRegex.test(password)) {
+    setErrors({
+      password:
+        "Password must be 8+ chars, include uppercase, lowercase, number & symbol",
+    });
+    ToastMsg(
+      "warning",
+      "Password must contain uppercase, lowercase, number and special character."
+    );
+    return;
+  }
+
+  // 🔴 Confirm password
+  if (!confirmPassword) {
+    setErrors({ confirmPassword: "Confirm password is required" });
+    ToastMsg("warning", "Please confirm your password.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setErrors({ confirmPassword: "Passwords do not match" });
+    ToastMsg("error", "Passwords do not match.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const response = await axiosInstance.post("/auth/register", {
+      name: name.trim(),
+      email: email.trim(),
+      password,
+    });
+
+    ToastMsg(
+      "success",
+      response.data.message ||
+        "Account created successfully 🎉 Please login."
+    );
+
     localStorage.removeItem("pending_email");
+
     navigate("/login");
-  };
+
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Registration failed";
+    ToastMsg("error", message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
@@ -139,13 +225,27 @@ const navigate = useNavigate();
               {errors.email && <p className="text-xs font-bold text-red-500 ml-1">{errors.email}</p>}
               
               {!isVerified && (
-                <button
-                  type="button"
-                  onClick={handleVerifyEmail}
-                  className="w-full mt-2 bg-blue-800 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-blue-900/40"
-                >
-                  Send Verification Code
-                </button>
+            <button
+  type="button"
+  onClick={handleVerifyEmail}
+  disabled={verifyLoading}
+  className={`w-full mt-2 py-3 rounded-xl font-bold transition-all duration-300 shadow-xl
+    ${
+      verifyLoading
+        ? "bg-gray-400 cursor-not-allowed text-white"
+        : "bg-blue-800 hover:bg-blue-700 text-white shadow-blue-900/40"
+    }`}
+>
+  {verifyLoading ? (
+    <div className="flex items-center justify-center space-x-2">
+      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+      <span>Sending Code...</span>
+    </div>
+  ) : (
+    "Send Verification Code"
+  )}
+</button>
+
               )}
             </div>
 
@@ -236,13 +336,29 @@ const navigate = useNavigate();
                   </label>
                 </div>
 
-                <button
-                  type="submit"
-              className="w-full bg-blue-800 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all duration-300 shadow-xl shadow-blue-900/40 flex items-center justify-center space-x-2 mt-4"
- >
-                  <UserPlus className="h-5 w-5" />
-                  <span>Complete Registration</span>
-                </button>
+            <button
+  type="submit"
+  disabled={loading}
+  className={`w-full py-3 rounded-xl font-bold transition-all duration-300 shadow-xl flex items-center justify-center space-x-2 mt-4
+    ${
+      loading
+        ? "bg-gray-400 cursor-not-allowed text-white"
+        : "bg-blue-800 hover:bg-blue-700 text-white shadow-blue-900/40"
+    }`}
+>
+  {loading ? (
+    <div className="flex items-center space-x-2">
+      <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+      <span>Creating Account...</span>
+    </div>
+  ) : (
+    <>
+      <UserPlus className="h-5 w-5" />
+      <span>Complete Registration</span>
+    </>
+  )}
+</button>
+
               </div>
             )}
           </form>

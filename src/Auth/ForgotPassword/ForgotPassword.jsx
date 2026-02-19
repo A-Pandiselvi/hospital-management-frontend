@@ -1,32 +1,51 @@
 import React, { useState } from 'react';
 import { Mail, ArrowRight, KeyRound, Hospital, ShieldCheck, ChevronLeft } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import axiosInstance from '../../Axios/AxiosInstance';
+import ToastMsg from '../../Toast/ToastMsg';
+
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 const navigate = useNavigate();
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!email.trim()) {
-      setError('Email is required');
-      return;
-    }
-    
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Please enter a valid email');
-      return;
-    }
 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!email.trim()) {
+    setError("Email is required");
+    ToastMsg("warning", "Email is required");
+    return;
+  }
+
+  if (!/\S+@\S+\.\S+/.test(email)) {
+    setError("Please enter a valid email");
+    ToastMsg("warning", "Enter valid email address");
+    return;
+  }
+
+  try {
     setIsLoading(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.setItem('reset_email', email);
-      navigate('/forgot-password-otp');
-    }, 1500);
-  };
+
+    const response = await axiosInstance.post("/auth/forgot-password", {
+      email: email.trim(),
+    });
+
+    ToastMsg("success", response.data.message || "Reset OTP sent");
+
+    localStorage.setItem("reset_email", email.trim());
+
+    navigate("/forgot-password-otp");
+
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Something went wrong";
+    ToastMsg("error", message);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">

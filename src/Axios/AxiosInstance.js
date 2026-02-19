@@ -1,13 +1,13 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Attach token automatically
+// ✅ Attach Token Automatically
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -21,13 +21,22 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// If token expired → logout
+// ✅ Handle Expired Token / Unauthorized Access
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+
+    if (status === 401) {
+      // Clear everything
       localStorage.removeItem("token");
-      window.location.href = "/";
+      localStorage.removeItem("role");
+      localStorage.removeItem("isLoggedIn");
+
+      // Prevent redirect loop
+      if (window.location.pathname !== "/") {
+        window.location.href = "/";
+      }
     }
 
     return Promise.reject(error);

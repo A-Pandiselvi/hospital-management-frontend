@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Eye, EyeOff, CheckCircle, KeyRound, Hospital, ChevronLeft, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../../Axios/AxiosInstance';
+import ToastMsg from '../../Toast/ToastMsg';
+
 const ResetPassword = () => {
   const [formData, setFormData] = useState({
     newPassword: '',
@@ -41,42 +44,44 @@ const handleSubmit = async (e) => {
   const newErrors = {};
 
   if (!formData.newPassword) {
-    newErrors.newPassword = 'New password is required';
+    newErrors.newPassword = "New password is required";
   } else if (formData.newPassword.length < 6) {
-    newErrors.newPassword = 'Password must be at least 6 characters';
+    newErrors.newPassword = "Password must be at least 6 characters";
   }
 
   if (formData.newPassword !== formData.confirmPassword) {
-    newErrors.confirmPassword = 'Passwords do not match';
+    newErrors.confirmPassword = "Passwords do not match";
   }
 
   if (Object.keys(newErrors).length > 0) {
     setErrors(newErrors);
+    ToastMsg("warning", "Please fix form errors");
     return;
   }
 
-  setIsLoading(true);
-setTimeout(() => {
-  setIsLoading(false);
+  try {
+    setIsLoading(true);
 
-  navigate('/login', { replace: true });
-
-  // Clear after navigation
-  localStorage.removeItem('reset_email');
-  localStorage.removeItem('reset_otp_verified');
-  localStorage.removeItem('email_verified');
-  localStorage.removeItem('verified_email');
-  localStorage.removeItem('pending_email');
-  localStorage.removeItem('isLoggedIn');
-  localStorage.removeItem('role');
-  localStorage.removeItem('userName');
-
-}, 1500);
+const response = await axiosInstance.post("/auth/reset-password", {
+  email,
+  newPassword: formData.newPassword,
+});
 
 
+    ToastMsg("success", response.data.message || "Password updated successfully");
+
+    localStorage.clear();
+
+    navigate("/login");
+
+  } catch (error) {
+    const message =
+      error.response?.data?.message || "Reset failed";
+    ToastMsg("error", message);
+  } finally {
+    setIsLoading(false);
+  }
 };
-
-
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6">
