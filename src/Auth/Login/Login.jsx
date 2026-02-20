@@ -35,8 +35,7 @@ const handleSubmit = async (e) => {
 
     // Save Auth Data
     localStorage.setItem("token", token);
-    localStorage.setItem("role", role);
-    localStorage.setItem("isLoggedIn", "true");
+localStorage.setItem("role", role);
 
     ToastMsg("success", "Login successful 🎉");
 

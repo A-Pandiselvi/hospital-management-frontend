@@ -29,8 +29,6 @@ axiosInstance.interceptors.response.use(
 
     if (status === 401) {
       // Clear everything
-      localStorage.removeItem("token");
-      localStorage.removeItem("role");
       localStorage.removeItem("isLoggedIn");
 
       // Prevent redirect loop

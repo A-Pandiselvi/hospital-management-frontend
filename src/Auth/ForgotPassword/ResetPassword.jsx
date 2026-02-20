@@ -62,15 +62,19 @@ const handleSubmit = async (e) => {
   try {
     setIsLoading(true);
 
+const otp = localStorage.getItem("reset_otp_value");
+
 const response = await axiosInstance.post("/auth/reset-password", {
   email,
+  otp,
   newPassword: formData.newPassword,
 });
 
 
     ToastMsg("success", response.data.message || "Password updated successfully");
-
-    localStorage.clear();
+localStorage.removeItem("reset_email");
+localStorage.removeItem("reset_otp_verified");
+localStorage.removeItem("reset_otp_value");
 
     navigate("/login");
 

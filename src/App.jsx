@@ -17,11 +17,27 @@ import AdminDashboard from './AdminComponents/AdminDashboard.jsx';
 
 // protected route
 const ProtectedRoute = ({ children, role }) => {
-  const isLoggedIn = localStorage.getItem("isLoggedIn");
+  const token = localStorage.getItem("token");
   const userRole = localStorage.getItem("role");
 
-  if (!isLoggedIn) return <Navigate to="/login" />;
-  if (role && role !== userRole) return <Navigate to="/login" />;
+  if (!token) return <Navigate to="/login" replace />;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+
+    if (payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      return <Navigate to="/login" replace />;
+    }
+
+    if (role && role !== userRole) {
+      return <Navigate to="/login" replace />;
+    }
+
+  } catch (error) {
+    return <Navigate to="/login" replace />;
+  }
 
   return children;
 };

@@ -198,14 +198,13 @@ const handleResend = async () => {
             <div className="flex flex-col space-y-4">
              <button
   type="submit"
-  disabled={
-    isVerifying || 
-    otpString.length !== 6 || 
-    canResend
-  }
+disabled={
+  isVerifying || 
+  otpString.length !== 6
+}
   className={`w-full py-3 rounded-xl font-bold transition-all duration-300 shadow-xl flex items-center justify-center space-x-2
     ${
-      isVerifying || otpString.length !== 6 || canResend
+      isVerifying || otpString.length !== 6
         ? "bg-gray-300 text-gray-500 cursor-not-allowed"
         : "bg-blue-800 text-white hover:bg-blue-700 shadow-blue-900/40"
     }
