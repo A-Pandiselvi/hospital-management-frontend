@@ -24,9 +24,10 @@ const navigate = useNavigate();
   const menuItems = {
     admin: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
+      { id: 'appointments', label: 'Appointments', icon: Calendar, path: '/admin/appointments' },
       { id: 'doctors', label: 'Manage Doctors', icon: UserCog, path: '/admin/doctors' },
       { id: 'patients', label: 'Manage Patients', icon: Users, path: '/admin/patients' },
-      { id: 'appointments', label: 'Appointments', icon: Calendar, path: '/admin/appointments' },
+      { id: 'billing', label: 'Billing', icon: ClipboardList, path: '/admin/billing' },
       { id: 'reports', label: 'Reports', icon: FileText, path: '/admin/reports' },
       { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
     ],
