@@ -46,7 +46,7 @@ useEffect(() => {
         />
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-2 bg-blue-100">
   {children ? children : <Outlet />}
 </main>
 

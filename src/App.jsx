@@ -12,6 +12,7 @@ import Layout from './Layout/Layout.jsx';
 import PatientDashboard from './PatientComponents/PatientDashboard.jsx';
 import DoctorDashboard from './DoctorComponents/DoctorDashboard.jsx';
 import AdminDashboard from './AdminComponents/AdminDashboard.jsx';
+import AdminAppointments from './AdminComponents/Appointments/AdminAppointments.jsx';
 
 
 
@@ -65,6 +66,7 @@ function App() {
           </ProtectedRoute>
         }>
           <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="appointments" element={<AdminAppointments />} />
         </Route>
 
         {/* DOCTOR */}
