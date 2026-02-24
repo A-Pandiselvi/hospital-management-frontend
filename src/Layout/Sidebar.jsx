@@ -13,13 +13,13 @@ import {
   CalendarPlus,
   FolderOpen,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,Pill
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Sidebar = ({ role = 'patient', isOpen, setIsOpen }) => {
-  const [activeTab, setActiveTab] = useState('dashboard');
 const navigate = useNavigate();
+const location = useLocation();
   // Menu items based on role
   const menuItems = {
     admin: [
@@ -28,8 +28,8 @@ const navigate = useNavigate();
       { id: 'doctors', label: 'Manage Doctors', icon: UserCog, path: '/admin/doctors' },
       { id: 'patients', label: 'Manage Patients', icon: Users, path: '/admin/patients' },
       { id: 'billing', label: 'Billing', icon: ClipboardList, path: '/admin/billing' },
+      { id: 'prescriptions', label: 'Prescriptions', icon: Pill, path: '/admin/prescriptions' },
       { id: 'reports', label: 'Reports', icon: FileText, path: '/admin/reports' },
-      { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
     ],
     doctor: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/doctor/dashboard' },
@@ -52,7 +52,6 @@ const navigate = useNavigate();
   const currentMenu = menuItems[role] || menuItems.patient;
 
 const handleMenuClick = (item) => {
-  setActiveTab(item.id);
   navigate(item.path);
 
   // close sidebar in mobile & tablet
@@ -97,7 +96,7 @@ ${isOpen ? 'translate-x-0 w-64' : '-translate-x-full'} lg:translate-x-0 ${isOpen
           <ul className="space-y-2">
             {currentMenu.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive = location.pathname === item.path;
 
               return (
                 <li key={item.id}>

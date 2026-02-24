@@ -11,8 +11,13 @@ import ResetPassword from './Auth/ForgotPassword/ResetPassword.jsx'
 import Layout from './Layout/Layout.jsx';
 import PatientDashboard from './PatientComponents/PatientDashboard.jsx';
 import DoctorDashboard from './DoctorComponents/DoctorDashboard.jsx';
-import AdminDashboard from './AdminComponents/AdminDashboard.jsx';
+import AdminDashboard from './AdminComponents/Dashboard/AdminDashboard.jsx';
 import AdminAppointments from './AdminComponents/Appointments/AdminAppointments.jsx';
+import AdminDoctors from './AdminComponents/Doctors/AdminDoctors.jsx';
+import AdminPatients from './AdminComponents/Patients/AdminPatients.jsx';
+import AdminBilling from './AdminComponents/Billing/AdminBilling.jsx';
+import AdminReports from './AdminComponents/Reports/AdminReports.jsx';
+import AdminPrescriptions from './AdminComponents/Prescriptions/AdminPrescriptions.jsx';
 
 
 
@@ -67,6 +72,11 @@ function App() {
         }>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="appointments" element={<AdminAppointments />} />
+          <Route path="doctors" element={<AdminDoctors />} />
+          <Route path="patients" element={<AdminPatients />} />
+          <Route path="billing" element={<AdminBilling />} />
+          <Route path="prescriptions" element={<AdminPrescriptions />} />
+          <Route path="reports" element={<AdminReports />} />
         </Route>
 
         {/* DOCTOR */}
