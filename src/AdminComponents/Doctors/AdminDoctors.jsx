@@ -125,11 +125,14 @@ const inputCls = (hasIcon = true, error = false) =>
 
 // ─── Add Doctor Modal ─────────────────────────────────────────────────────────
 const AddDoctorModal = ({ onClose, onSuccess }) => {
-  const INIT = {
-    name: "", email: "", password: "",
-    specialization: "", experience: "",
-    consultation_fee: "", availability: "Available",
-  };
+const INIT = {
+  name: "",
+  email: "",
+  specialization: "",
+  experience: "",
+  consultation_fee: "",
+  availability: "Available",
+};
   const [form, setForm] = useState(INIT);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -139,8 +142,6 @@ const AddDoctorModal = ({ onClose, onSuccess }) => {
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.email.trim()) e.email = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Invalid email";
-    if (!form.password.trim()) e.password = "Password is required";
-    else if (form.password.length < 6) e.password = "Min 6 characters";
     if (!form.specialization.trim()) e.specialization = "Specialization is required";
     if (!form.experience) e.experience = "Experience is required";
     else if (isNaN(form.experience) || Number(form.experience) < 0) e.experience = "Enter valid years";
@@ -217,17 +218,6 @@ const AddDoctorModal = ({ onClose, onSuccess }) => {
               className={inputCls(true, !!errors.email)}
               value={form.email}
               onChange={(e) => handleChange("email", e.target.value)}
-            />
-          </FormField>
-
-          {/* Password */}
-          <FormField label="Password" icon={Lock} error={errors.password}>
-            <input
-              type="password"
-              placeholder="Min. 6 characters"
-              className={inputCls(true, !!errors.password)}
-              value={form.password}
-              onChange={(e) => handleChange("password", e.target.value)}
             />
           </FormField>
 
@@ -497,7 +487,7 @@ const AdminDoctors = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await axiosInstance.delete(`/admin/doctor/${deleteTarget.id}`);
+      await axiosInstance.delete(`/admin/doctor/${deleteTarget.user_id || deleteTarget.id}`);
       setDoctors((prev) => prev.filter((d) => d.id !== deleteTarget.id));
       showToast(`Dr. ${deleteTarget.name} removed successfully.`, "success");
     } catch (err) {
@@ -749,7 +739,7 @@ const AdminDoctors = () => {
                 ) : (
                   paginated.map((doc) => (
                     <tr
-                      key={doc.id}
+                      key={doc.user_id || doc.id}
                       className="group hover:bg-blue-900/[0.03] transition-colors"
                     >
                       {/* Doctor */}

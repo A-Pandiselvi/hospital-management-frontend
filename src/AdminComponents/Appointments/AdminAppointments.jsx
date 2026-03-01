@@ -5,52 +5,34 @@ import {
   Clock,
   Stethoscope,
   Search,
-  Filter,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  CalendarDays,
   Activity,
   UserCheck,
   Clock8,
-  XCircle
+  XCircle,
+  Plus,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  X,
+  User,
+  BadgeCheck,
+  ShieldCheck,
 } from "lucide-react";
 
-// ─── Refined Status Badges ───────────────────────────────────────────────────
+// ─── Status Config ────────────────────────────────────────────────────────────
 const statusConfig = {
-  pending: { 
-    label: "Pending", 
-    bg: "bg-amber-50", 
-    text: "text-amber-600", 
-    dot: "bg-amber-400" 
-  },
-
-  approved: { 
-    label: "Approved", 
-    bg: "bg-blue-50", 
-    text: "text-blue-600", 
-    dot: "bg-blue-500" 
-  },
-
-  completed: { 
-    label: "Completed", 
-    bg: "bg-emerald-50", 
-    text: "text-emerald-600", 
-    dot: "bg-emerald-500" 
-  },
-
-  rejected: { 
-    label: "Rejected", 
-    bg: "bg-red-50", 
-    text: "text-red-600", 
-    dot: "bg-red-400" 
-  },
+  pending:   { label: "Pending",   bg: "bg-amber-50",   text: "text-amber-600",   dot: "bg-amber-400"  },
+  approved:  { label: "Approved",  bg: "bg-blue-50",    text: "text-blue-600",    dot: "bg-blue-500"   },
+  completed: { label: "Completed", bg: "bg-emerald-50", text: "text-emerald-600", dot: "bg-emerald-500"},
+  rejected:  { label: "Rejected",  bg: "bg-red-50",     text: "text-red-600",     dot: "bg-red-400"    },
 };
 
 const StatusBadge = ({ status }) => {
-  const s = status?.toLowerCase();
-  const cfg = statusConfig[s] || statusConfig.pending;
+  const cfg = statusConfig[status?.toLowerCase()] || statusConfig.pending;
   return (
     <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${cfg.bg} ${cfg.text} border border-current/10`}>
       <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot} animate-pulse`} />
@@ -59,6 +41,390 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// ─── Form Field ───────────────────────────────────────────────────────────────
+const FormField = ({ label, icon: Icon, error, children }) => (
+  <div>
+    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+      {label}
+    </label>
+    <div className="relative">
+      {Icon && (
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+          <Icon className="w-3.5 h-3.5 text-slate-400" />
+        </div>
+      )}
+      {children}
+    </div>
+    {error && <p className="mt-1 text-[10px] font-bold text-red-500">{error}</p>}
+  </div>
+);
+
+const inputCls = (hasIcon = true, error = false) =>
+  `w-full ${hasIcon ? "pl-9" : "pl-3"} pr-3 py-2.5 bg-slate-50 border ${
+    error ? "border-red-300 focus:ring-red-200" : "border-slate-200 focus:ring-blue-800/10"
+  } rounded-xl text-xs font-bold text-slate-700 focus:ring-4 outline-none transition-all`;
+
+// ─── Delete Modal ─────────────────────────────────────────────────────────────
+const DeleteModal = ({ appointment, onConfirm, onCancel, deleting }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-blue-950/60 backdrop-blur-sm px-4">
+    <div className="bg-white rounded-3xl shadow-2xl shadow-blue-950/20 w-full max-w-md p-7 border border-blue-900/10 animate-[fadeUp_0.2s_ease]">
+      <div className="flex items-center justify-between mb-5">
+        <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
+          <AlertTriangle className="w-6 h-6 text-red-500" />
+        </div>
+        <button onClick={onCancel} className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+          <X className="w-4 h-4 text-slate-400" />
+        </button>
+      </div>
+      <h2 className="text-lg font-black text-blue-950 mb-1">Delete Appointment</h2>
+      <p className="text-sm text-slate-500 mb-6">
+        Are you sure you want to remove the appointment for{" "}
+        <span className="font-bold text-blue-900">{appointment?.patient_name}</span>? This action cannot be undone.
+      </p>
+      <div className="flex gap-3">
+        <button
+          onClick={onCancel}
+          className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={deleting}
+          className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          {deleting ? "Deleting..." : "Yes, Delete"}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+// ─── Add Appointment Modal ────────────────────────────────────────────────────
+const AddAppointmentModal = ({ onClose, onSuccess }) => {
+const INIT = {
+  patient_id: "",
+  doctor_id: "",
+  appointment_date: "",
+  appointment_time: "",
+  reason: "",
+};
+  const [form, setForm] = useState(INIT);
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+const [patients, setPatients] = useState([]);
+const [doctors, setDoctors] = useState([]);
+  const validate = () => {
+    const e = {};
+    if (!form.patient_id) e.patient_id = "Patient is required";
+if (!form.doctor_id) e.doctor_id = "Doctor is required";
+    if (!form.appointment_date) e.appointment_date = "Date is required";
+    if (!form.appointment_time) e.appointment_time = "Time is required";
+    return e;
+  };
+
+  useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const [pRes, dRes] = await Promise.all([
+        axiosInstance.get("/admin/patients"),
+        axiosInstance.get("/admin/doctors"),
+      ]);
+      setPatients(pRes.data || []);
+      setDoctors(dRes.data || []);
+    } catch (err) {
+      console.error("Failed to load patients/doctors");
+    }
+  };
+
+  fetchData();
+}, []);
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true);
+    try {
+      await axiosInstance.post("/admin/appointment", {
+  patient_id: Number(form.patient_id),
+  doctor_id: Number(form.doctor_id),
+  appointment_date: form.appointment_date,
+  appointment_time: form.appointment_time,
+  reason: form.reason,
+});
+      onSuccess("Appointment added successfully.");
+      onClose();
+    } catch (err) {
+      onSuccess(err.response?.data?.message || "Failed to add appointment.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const STATUS_OPTIONS = ["pending", "approved", "completed", "rejected"];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-blue-950/60 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl shadow-blue-950/20 w-full max-w-lg p-7 border border-blue-900/10 animate-[fadeUp_0.2s_ease] my-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center shadow-lg">
+              <Plus className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-blue-950">Add New Appointment</h2>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">Fill in the appointment details below</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+            <X className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="space-y-4">
+          <FormField label="Select Patient" icon={User} error={errors.patient_id}>
+  <select
+    className={inputCls(true, !!errors.patient_id)}
+    value={form.patient_id}
+    onChange={(e) => handleChange("patient_id", e.target.value)}
+  >
+    <option value="">Select Patient</option>
+    {patients.map((p) => (
+      <option key={p.id} value={p.id}>
+        {p.name}
+      </option>
+    ))}
+  </select>
+</FormField>
+
+<FormField label="Select Doctor" icon={Stethoscope} error={errors.doctor_id}>
+  <select
+    className={inputCls(true, !!errors.doctor_id)}
+    value={form.doctor_id}
+    onChange={(e) => handleChange("doctor_id", e.target.value)}
+  >
+    <option value="">Select Doctor</option>
+    {doctors.map((d) => (
+      <option key={d.id} value={d.id}>
+        {d.name}
+      </option>
+    ))}
+  </select>
+</FormField>
+
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Date" icon={Calendar} error={errors.appointment_date}>
+              <input
+                type="date"
+                className={inputCls(true, !!errors.appointment_date)}
+                value={form.appointment_date}
+                onChange={(e) => handleChange("appointment_date", e.target.value)}
+              />
+            </FormField>
+            <FormField label="Time" icon={Clock} error={errors.appointment_time}>
+              <input
+                type="time"
+                className={inputCls(true, !!errors.appointment_time)}
+                value={form.appointment_time}
+                onChange={(e) => handleChange("appointment_time", e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <FormField label="Reason" icon={Activity} error={errors.reason}>
+            <input
+              type="text"
+              placeholder="e.g. Routine Checkup"
+              className={inputCls(true, false)}
+              value={form.reason}
+              onChange={(e) => handleChange("reason", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Status" icon={BadgeCheck} error={errors.status}>
+            <select
+              className={inputCls(true, false)}
+              value={form.status}
+              onChange={(e) => handleChange("status", e.target.value)}
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex-1 py-2.5 rounded-xl bg-blue-900 hover:bg-blue-800 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-md"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            {saving ? "Adding..." : "Add Appointment"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Edit Appointment Modal ───────────────────────────────────────────────────
+const EditAppointmentModal = ({ appointment, onClose, onSuccess }) => {
+  const [form, setForm] = useState({
+    appointment_date: appointment.appointment_date?.slice(0, 10) || "",
+    appointment_time: appointment.appointment_time || "",
+    reason: appointment.reason || "",
+    status: appointment.status?.toLowerCase() || "pending",
+  });
+  const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
+
+  const validate = () => {
+    const e = {};
+    if (!form.appointment_date) e.appointment_date = "Date is required";
+    if (!form.appointment_time) e.appointment_time = "Time is required";
+    return e;
+  };
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true);
+    try {
+      await axiosInstance.put(`/admin/appointment/${appointment.id}`, form);
+      onSuccess(`Appointment for ${appointment.patient_name} updated successfully.`);
+      onClose();
+    } catch (err) {
+      onSuccess(err.response?.data?.message || "Failed to update appointment.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const STATUS_OPTIONS = ["pending", "approved", "completed", "rejected"];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-blue-950/60 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl shadow-blue-950/20 w-full max-w-lg p-7 border border-blue-900/10 animate-[fadeUp_0.2s_ease] my-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-600 to-violet-400 flex items-center justify-center shadow-lg">
+              <Pencil className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-blue-950">Edit Appointment</h2>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                Updating {appointment.patient_name}'s appointment
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
+            <X className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
+
+        {/* Read-only info card */}
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl p-3 mb-5">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center text-white font-black text-sm shadow flex-shrink-0">
+            {appointment.patient_name?.charAt(0)?.toUpperCase() || "P"}
+          </div>
+          <div>
+            <p className="text-xs font-black text-blue-950">{appointment.patient_name}</p>
+            <p className="text-[10px] text-slate-400 font-medium">Dr. {appointment.doctor_name}</p>
+          </div>
+          <div className="ml-auto">
+            <BadgeCheck className="w-5 h-5 text-blue-400" />
+          </div>
+        </div>
+
+        {/* Editable fields */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="Date" icon={Calendar} error={errors.appointment_date}>
+              <input
+                type="date"
+                className={inputCls(true, !!errors.appointment_date)}
+                value={form.appointment_date}
+                onChange={(e) => handleChange("appointment_date", e.target.value)}
+              />
+            </FormField>
+            <FormField label="Time" icon={Clock} error={errors.appointment_time}>
+              <input
+                type="time"
+                className={inputCls(true, !!errors.appointment_time)}
+                value={form.appointment_time}
+                onChange={(e) => handleChange("appointment_time", e.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <FormField label="Reason" icon={Activity} error={errors.reason}>
+            <input
+              type="text"
+              placeholder="e.g. Routine Checkup"
+              className={inputCls(true, false)}
+              value={form.reason}
+              onChange={(e) => handleChange("reason", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Status" icon={BadgeCheck} error={errors.status}>
+            <select
+              className={inputCls(true, false)}
+              value={form.status}
+              onChange={(e) => handleChange("status", e.target.value)}
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
+              ))}
+            </select>
+          </FormField>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2 shadow-md"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const PAGE_SIZE = 8;
 
 const AdminAppointments = () => {
@@ -67,20 +433,57 @@ const AdminAppointments = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [toast, setToast] = useState(null);
 
+  // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchAppointments = async () => {
     setLoading(true);
     try {
       const res = await axiosInstance.get("/admin/appointments");
       setAppointments(res.data || []);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to load appointments.", "error");
+    } finally {
+      setLoading(false);
+    }
   };
-useEffect(() => {
-  setPage(1);
-}, [search, statusFilter]);
-  useEffect(() => { fetchAppointments(); }, []);
 
+  useEffect(() => { fetchAppointments(); }, []);
+  useEffect(() => { setPage(1); }, [search, statusFilter]);
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await axiosInstance.delete(`/admin/appointment/${deleteTarget.id}`);
+      setAppointments((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+      showToast(`Appointment for ${deleteTarget.patient_name} removed successfully.`, "success");
+    } catch (err) {
+      showToast("Failed to delete appointment.", "error");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleMutateSuccess = (msg, type = "success") => {
+    fetchAppointments();
+    showToast(msg, type);
+  };
+
+  // ── Derived ────────────────────────────────────────────────────────────────
   const filtered = appointments.filter((a) => {
     const q = search.toLowerCase();
     const matchSearch = a.patient_name?.toLowerCase().includes(q) || a.doctor_name?.toLowerCase().includes(q);
@@ -91,253 +494,317 @@ useEffect(() => {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  // Stats Logic
   const stats = [
-    { label: "Total Bookings", value: appointments.length, icon: Activity, color: "from-blue-600 to-blue-400" },
-    { label: "Pending Review", value: appointments.filter(a => a.status?.toLowerCase() === 'pending').length, icon: Clock8, color: "from-amber-500 to-amber-300" },
-    { label: "Confirmed", value: appointments.filter(a => a.status?.toLowerCase() === 'approved').length, icon: UserCheck, color: "from-emerald-600 to-emerald-400" },
-    { label: "Cancelled", value: appointments.filter(a => a.status?.toLowerCase() === 'rejected').length, icon: XCircle, color: "from-red-600 to-red-400" },
+    { label: "Total Bookings",  value: appointments.length,                                                            icon: Activity,  color: "from-blue-600 to-blue-400"    },
+    { label: "Pending Review",  value: appointments.filter(a => a.status?.toLowerCase() === "pending").length,         icon: Clock8,    color: "from-amber-500 to-amber-300"   },
+    { label: "Confirmed",       value: appointments.filter(a => a.status?.toLowerCase() === "approved").length,        icon: UserCheck, color: "from-emerald-600 to-emerald-400"},
+    { label: "Cancelled",       value: appointments.filter(a => a.status?.toLowerCase() === "rejected").length,        icon: XCircle,   color: "from-red-600 to-red-400"       },
   ];
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className=" bg-[#F8FAFC] p-3 rounded-xl ">
-      <div className=" mx-auto">
-        
-        {/* ── Header Section ────────────────────────────────────────── */}
+    <div className="bg-[#F8FAFC] p-3 rounded-xl">
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes light-sweep {
+          0%   { left: -100%; }
+          30%  { left: 150%; }
+          100% { left: 150%; }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
+      {/* ── Toast ──────────────────────────────────────────────────────────── */}
+      {toast && (
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-sm font-bold text-white animate-[slideIn_0.3s_ease] ${toast.type === "success" ? "bg-blue-900" : "bg-red-500"}`}>
+          {toast.type === "success" ? <ShieldCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+          {toast.msg}
+        </div>
+      )}
+
+      {/* ── Delete Modal ────────────────────────────────────────────────────── */}
+      {deleteTarget && (
+        <DeleteModal
+          appointment={deleteTarget}
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+          deleting={deleting}
+        />
+      )}
+
+      {/* ── Add Appointment Modal ────────────────────────────────────────────── */}
+      {showAddModal && (
+        <AddAppointmentModal
+          onClose={() => setShowAddModal(false)}
+          onSuccess={handleMutateSuccess}
+        />
+      )}
+
+      {/* ── Edit Appointment Modal ───────────────────────────────────────────── */}
+      {editTarget && (
+        <EditAppointmentModal
+          appointment={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={handleMutateSuccess}
+        />
+      )}
+
+      <div className="mx-auto">
+        {/* ── Header ────────────────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-3">
           <div>
             <h1 className="text-xl font-bold text-blue-950 tracking-tight">Management Appointments</h1>
             <p className="text-slate-500 text-xs font-medium italic">Hospital Appointment Registry</p>
           </div>
-
           <div className="flex items-center gap-3">
+            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Find record..."
-                className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs focus:ring-4 focus:ring-blue-500/10 outline-none w-72 transition-all shadow-sm"
+                className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs focus:ring-4 focus:ring-blue-500/10 outline-none w-64 transition-all shadow-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <button onClick={fetchAppointments} className="p-2.5 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 text-blue-600 transition-all shadow-sm">
-              <RefreshCw className="w-5 h-5" />
+            {/* Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="py-2.5 px-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 focus:ring-4 focus:ring-blue-800/10 outline-none shadow-sm transition-all"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <button
+              onClick={fetchAppointments}
+              className="p-2.5 bg-white border border-slate-200 rounded-2xl hover:bg-blue-50 text-blue-900 transition-all shadow-sm"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+            {/* ── ADD APPOINTMENT BUTTON ── */}
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold rounded-2xl transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" />
+              Add Appointment
             </button>
           </div>
         </div>
 
-        {/* ── Modern Stat Cards ─────────────────────────────────────── */}
-{/* ── Compact Light-Themed Neon Stat Cards ───────────────────────────── */}
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  {stats.map((s, i) => (
-    <div 
-      key={i} 
-      className="group relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-blue-200/40 hover:-translate-y-1"
-    >
-      {/* Light Sweep Effect */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-0 -left-[100%] w-[40%] h-full bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-[35deg] animate-[light-sweep_4s_infinite]" />
-      </div>
-
-      {/* Soft Glow Blob */}
-      <div className={`absolute -right-3 -top-3 w-16 h-16 bg-gradient-to-br ${s.color} opacity-[0.06] blur-xl group-hover:opacity-20 transition-opacity`} />
-
-      <div className="relative z-10">
-        {/* Smaller Icon */}
-        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform duration-500`}>
-          <s.icon className="w-5 h-5 text-white" />
+        {/* ── Stat Cards ────────────────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {stats.map((s, i) => (
+            <div
+              key={i}
+              className="group relative bg-white rounded-2xl p-4 shadow-sm border border-slate-100 overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-blue-200/40 hover:-translate-y-1"
+            >
+              <div className="absolute inset-0 z-0 pointer-events-none">
+                <div className="absolute top-0 -left-[100%] w-[40%] h-full bg-gradient-to-r from-transparent via-white/70 to-transparent skew-x-[35deg] animate-[light-sweep_4s_infinite]" />
+              </div>
+              <div className={`absolute -right-3 -top-3 w-16 h-16 bg-gradient-to-br ${s.color} opacity-[0.06] blur-xl group-hover:opacity-20 transition-opacity`} />
+              <div className="relative z-10">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center mb-4 shadow-md group-hover:scale-105 transition-transform duration-500`}>
+                  <s.icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <h3 className="text-2xl font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors">
+                    {s.value}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-gradient-to-r ${s.color} opacity-75`} />
+                      <span className={`relative inline-flex rounded-full h-2 w-2 bg-gradient-to-r ${s.color}`} />
+                    </span>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{s.label}</p>
+                  </div>
+                </div>
+              </div>
+              <div className={`absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r ${s.color} opacity-40 animate-pulse`} />
+            </div>
+          ))}
         </div>
-        
-        <div className="flex flex-col gap-1">
-          {/* Smaller Value */}
-          <h3 className="text-2xl font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors">
-            {s.value}
-          </h3>
-          
-          <div className="flex items-center gap-2">
-            {/* Status Dot */}
-            <span className="relative flex h-2 w-2">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-gradient-to-r ${s.color} opacity-75`}></span>
-              <span className={`relative inline-flex rounded-full h-2 w-2 bg-gradient-to-r ${s.color}`}></span>
-            </span>
 
-            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-              {s.label}
-            </p>
+        {/* ── Table Card ────────────────────────────────────────────────────── */}
+        <div className="flex flex-col h-[400px] bg-white rounded-xl shadow-2xl shadow-blue-950/5 border border-blue-800/20 overflow-hidden">
+          <div className="flex-1 overflow-y-auto scroll-smooth">
+            <table className="w-full text-left border-separate border-spacing-0">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-blue-800 text-white">
+                  {["Patient", "Practitioner", "Timing", "Reason", "Status", "Action"].map((h) => (
+                    <th key={h} className="px-4 py-3.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-blue-800/5">
+                {loading ? (
+                  <tr>
+                    <td colSpan={6} className="py-24 text-center">
+                      <Loader2 className="w-10 h-10 animate-spin text-blue-800 mx-auto" />
+                      <p className="mt-4 text-xs font-bold text-blue-800/60 uppercase tracking-widest">Refreshing Records...</p>
+                    </td>
+                  </tr>
+                ) : paginated.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-20 text-center text-slate-400 font-semibold text-sm">
+                      No appointments found
+                    </td>
+                  </tr>
+                ) : (
+                  paginated.map((apt) => (
+                    <tr key={apt.id} className="group hover:bg-blue-800/5 transition-all cursor-default">
+                      {/* Patient */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-800 to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-blue-800/20 group-hover:rotate-6 transition-all flex-shrink-0">
+                            {apt.patient_name?.charAt(0) || "P"}
+                          </div>
+                          <div>
+                            <span className="block font-black text-slate-800 text-xs leading-none mb-1">
+                              {apt.patient_name || "Unknown"}
+                            </span>
+                            <span className="text-[10px] font-bold text-blue-800/50 uppercase tracking-tighter">
+                              Record #{apt.id?.toString().slice(-4)}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Doctor */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-1.5 bg-blue-800/10 rounded-lg">
+                            <Stethoscope className="w-4 h-4 text-blue-800" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-600 italic">
+                            Dr. {apt.doctor_name || "N/A"}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Timing */}
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-slate-700">
+                            {apt.appointment_date
+                              ? new Date(apt.appointment_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                              : "N/A"}
+                          </span>
+                          <div className="flex items-center gap-1.5 text-blue-800 font-bold text-[10px] uppercase">
+                            <Clock className="w-3 h-3" />
+                            {apt.appointment_time || "N/A"}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Reason */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-purple-100 rounded-lg">
+                            <Activity className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <span className="text-xs font-bold text-slate-600">{apt.reason || "N/A"}</span>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <StatusBadge status={apt.status} />
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          {/* ── EDIT BUTTON ── */}
+                          <button
+                            onClick={() => setEditTarget(apt)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-violet-500 text-violet-600 hover:text-white border border-violet-200 hover:border-violet-500 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            Edit
+                          </button>
+                          {/* ── DELETE BUTTON ── */}
+                          <button
+                            onClick={() => setDeleteTarget(apt)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-200 hover:border-red-500 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Pagination ──────────────────────────────────────────────────── */}
+          <div className="px-6 py-4 bg-blue-900/[0.03] border-t border-blue-900/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span className="text-[11px] font-bold text-blue-900/50 uppercase tracking-widest">
+              Showing {paginated.length} of {filtered.length} Appointments
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-blue-900/20 text-[11px] font-bold text-blue-900 hover:bg-blue-900 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Prev
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                .reduce((acc, p, i, arr) => {
+                  if (i > 0 && p - arr[i - 1] > 1) acc.push("...");
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === "..." ? (
+                    <span key={`d${i}`} className="text-slate-400 text-xs px-1">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`w-8 h-8 rounded-xl text-xs font-bold transition-all ${
+                        p === page
+                          ? "bg-blue-900 text-white shadow-md"
+                          : "border border-blue-900/20 text-blue-900 hover:bg-blue-900/10"
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+
+              <button
+                disabled={page === totalPages || totalPages === 0}
+                onClick={() => setPage((p) => p + 1)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-blue-900/20 text-[11px] font-bold text-blue-900 hover:bg-blue-900 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              >
+                Next
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Bottom Neon Border */}
-      <div className={`absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r ${s.color} opacity-40 animate-pulse`} />
-    </div>
-  ))}
-</div>
-
-{/* Keep this in global CSS */}
-<style>{`
-  @keyframes light-sweep {
-    0% { left: -100%; }
-    30% { left: 150%; }
-    100% { left: 150%; }
-  }
-`}</style>
-
-{/* ── Table Section ─────────────────────────────────────────── */}
-<div className="flex flex-col h-[400px] bg-white rounded-xl shadow-2xl shadow-blue-950/5 border border-blue-800/20 overflow-hidden">
-
-  {/* Scroll Area */}
-  <div className="flex-1 overflow-y-auto scroll-smooth">
-
-    <table className="w-full text-left border-separate border-spacing-0">
-
-      {/* Sticky Header */}
-      <thead className="sticky top-0 z-10">
-        <tr className="bg-blue-800 text-white">
-          <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest border-b border-blue-800/10">
-            Patient
-          </th>
-          <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest border-b border-blue-800/10">
-            Practitioner
-          </th>
-          <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest border-b border-blue-800/10">
-            Timing
-          </th>
-    <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest border-b border-blue-800/10">
-      Reason
-    </th>
-          <th className="px-4 py-3 text-[11px] font-bold uppercase tracking-widest border-b border-blue-800/10">
-            Status
-          </th>
-        </tr>
-      </thead>
-
-      <tbody className="divide-y divide-blue-800/5">
-  {loading ? (
-    <tr>
-      <td colSpan="5" className="py-24 text-center">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-800 mx-auto" />
-        <p className="mt-4 text-xs font-bold text-blue-800/60 uppercase tracking-widest">
-          Refreshing Records...
-        </p>
-      </td>
-    </tr>
-  ) : paginated.length === 0 ? (
-    <tr>
-      <td colSpan="5" className="py-20 text-center text-slate-400 font-semibold text-sm">
-        No appointments found
-      </td>
-    </tr>
-  ) : (
-    paginated.map((apt) => (
-      <tr
-        key={apt.id}
-        className="group hover:bg-blue-800/5 transition-all cursor-default"
-      >
-        {/* Patient */}
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-800 to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-lg shadow-blue-800/20 group-hover:rotate-6 transition-all">
-              {apt.patient_name?.charAt(0) || "P"}
-            </div>
-            <div>
-              <span className="block font-black text-slate-800 text-xs leading-none mb-1">
-                {apt.patient_name || "Unknown"}
-              </span>
-              <span className="text-[10px] font-bold text-blue-800/50 uppercase tracking-tighter">
-                Record #{apt.id?.toString().slice(-4)}
-              </span>
-            </div>
-          </div>
-        </td>
-
-        {/* Doctor */}
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 bg-blue-800/10 rounded-lg">
-              <Stethoscope className="w-4 h-4 text-blue-800" />
-            </div>
-            <span className="text-xs font-bold text-slate-600 italic">
-              Dr. {apt.doctor_name || "N/A"}
-            </span>
-          </div>
-        </td>
-
-        {/* Date & Time */}
-        <td className="px-4 py-3">
-          <div className="flex flex-col">
-            <span className="text-xs font-black text-slate-700">
-              {apt.appointment_date
-                ? new Date(apt.appointment_date).toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "N/A"}
-            </span>
-            <div className="flex items-center gap-1.5 text-blue-800 font-bold text-[10px] uppercase">
-              <Clock className="w-3 h-3" />
-              {apt.appointment_time || "N/A"}
-            </div>
-          </div>
-        </td>
-
-        {/* Reason */}
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-purple-100 rounded-lg">
-              <Activity className="w-4 h-4 text-purple-600" />
-            </div>
-            <span className="text-xs font-bold text-slate-600">
-              {apt.reason || "N/A"}
-            </span>
-          </div>
-        </td>
-
-        {/* Status */}
-        <td className="px-4 py-3">
-          <StatusBadge status={apt.status} />
-        </td>
-      </tr>
-    ))
-  )}
-</tbody>
-
-    </table>
-  </div>
-
-  {/* Pagination (Fixed Bottom) */}
-  <div className="px-8 py-6 bg-blue-800/5 border-t border-blue-800/10 flex items-center justify-between">
-    <span className="text-[11px] font-black text-blue-800/60 uppercase tracking-widest">
-      Showing {paginated.length} of {filtered.length} Appointments
-    </span>
-
-    <div className="flex items-center gap-4">
-      <button
-        disabled={page === 1}
-        onClick={() => setPage((p) => p - 1)}
-        className="text-xs font-black text-blue-800 hover:text-blue-900 disabled:opacity-20 transition-all flex items-center gap-1"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        PREV
-      </button>
-
-      <div className="h-4 w-[1px] bg-blue-800/20" />
-
-      <button
-        disabled={page === totalPages}
-        onClick={() => setPage((p) => p + 1)}
-        className="text-xs font-black text-blue-800 hover:text-blue-900 disabled:opacity-20 transition-all flex items-center gap-1"
-      >
-        NEXT
-        <ChevronRight className="w-4 h-4" />
-      </button>
-    </div>
-  </div>
-
-</div>
-
       </div>
     </div>
   );
