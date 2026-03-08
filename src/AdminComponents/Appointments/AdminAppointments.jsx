@@ -285,21 +285,20 @@ if (!form.doctor_id) e.doctor_id = "Doctor is required";
 
 // ─── Edit Appointment Modal ───────────────────────────────────────────────────
 const EditAppointmentModal = ({ appointment, onClose, onSuccess }) => {
-  const [form, setForm] = useState({
-    appointment_date: appointment.appointment_date?.slice(0, 10) || "",
-    appointment_time: appointment.appointment_time || "",
-    reason: appointment.reason || "",
-    status: appointment.status?.toLowerCase() || "pending",
-  });
+const [form, setForm] = useState({
+  appointment_date: appointment.appointment_date?.slice(0,10) || "",
+  appointment_time: appointment.appointment_time || "",
+  reason: appointment.reason || "",
+  status: appointment.status?.toLowerCase() || "pending",
+});
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
-  const validate = () => {
-    const e = {};
-    if (!form.appointment_date) e.appointment_date = "Date is required";
-    if (!form.appointment_time) e.appointment_time = "Time is required";
-    return e;
-  };
+const validate = () => {
+  const e = {};
+  if (!form.status) e.status = "Status is required";
+  return e;
+};
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -311,7 +310,9 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess }) => {
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
     try {
-      await axiosInstance.put(`/admin/appointment/${appointment.id}`, form);
+      await axiosInstance.put(`/admin/appointment/${appointment.id}`, {
+  status: form.status
+});
       onSuccess(`Appointment for ${appointment.patient_name} updated successfully.`);
       onClose();
     } catch (err) {
@@ -361,33 +362,24 @@ const EditAppointmentModal = ({ appointment, onClose, onSuccess }) => {
         {/* Editable fields */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Date" icon={Calendar} error={errors.appointment_date}>
-              <input
-                type="date"
-                className={inputCls(true, !!errors.appointment_date)}
-                value={form.appointment_date}
-                onChange={(e) => handleChange("appointment_date", e.target.value)}
-              />
-            </FormField>
-            <FormField label="Time" icon={Clock} error={errors.appointment_time}>
-              <input
-                type="time"
-                className={inputCls(true, !!errors.appointment_time)}
-                value={form.appointment_time}
-                onChange={(e) => handleChange("appointment_time", e.target.value)}
-              />
-            </FormField>
+           <FormField label="Date" icon={Calendar}>
+<div className="w-full pl-9 pr-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
+{form.appointment_date}
+</div>
+</FormField>
+
+<FormField label="Time" icon={Clock}>
+<div className="w-full pl-9 pr-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
+{form.appointment_time}
+</div>
+</FormField>
           </div>
 
-          <FormField label="Reason" icon={Activity} error={errors.reason}>
-            <input
-              type="text"
-              placeholder="e.g. Routine Checkup"
-              className={inputCls(true, false)}
-              value={form.reason}
-              onChange={(e) => handleChange("reason", e.target.value)}
-            />
-          </FormField>
+       <FormField label="Reason" icon={Activity}>
+<div className="w-full pl-9 pr-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-xs font-bold text-slate-600">
+{form.reason || "N/A"}
+</div>
+</FormField>
 
           <FormField label="Status" icon={BadgeCheck} error={errors.status}>
             <select

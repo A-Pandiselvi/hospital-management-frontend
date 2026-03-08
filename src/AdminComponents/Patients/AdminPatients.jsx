@@ -133,7 +133,11 @@ const AdminPatients = () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await axiosInstance.delete(`/admin/patient/${deleteTarget.id}`);
+      await axiosInstance.delete(`/admin/patient/${deleteTarget.id}`, {
+  headers: {
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  },
+});
       setPatients((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       showToast(`${deleteTarget.name} removed successfully.`, "success");
     } catch (err) {

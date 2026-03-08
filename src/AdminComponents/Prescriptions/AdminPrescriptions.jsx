@@ -19,11 +19,9 @@ import {
   X,
 } from "lucide-react";
 
-// ─── View Modal ───────────────────────────────────────────────────────────────
 const ViewModal = ({ prescription, onClose }) => {
   if (!prescription) return null;
 
-  // medicines field may be JSON string or plain text
   let medicines = [];
   try {
     const parsed = JSON.parse(prescription.medicines);

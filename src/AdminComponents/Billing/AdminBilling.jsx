@@ -29,12 +29,28 @@ import {
 // ─── Payment Status Badge ─────────────────────────────────────────────────────
 const PaymentBadge = ({ status }) => {
   const s = status?.toLowerCase();
+
   const config =
     s === "paid"
-      ? { cls: "bg-emerald-50 text-emerald-600 border-emerald-200", dot: "bg-emerald-400 animate-pulse", icon: <CheckCircle2 className="w-3 h-3" />, label: "Paid" }
-      : s === "pending"
-      ? { cls: "bg-amber-50 text-amber-600 border-amber-200",       dot: "bg-amber-400 animate-pulse",   icon: <Clock className="w-3 h-3" />,         label: "Pending" }
-      : { cls: "bg-red-50 text-red-500 border-red-200",             dot: "bg-red-400",                   icon: <XCircle className="w-3 h-3" />,        label: status || "Unknown" };
+      ? {
+          cls: "bg-emerald-50 text-emerald-600 border-emerald-200",
+          dot: "bg-emerald-400 animate-pulse",
+          icon: <CheckCircle2 className="w-3 h-3" />,
+          label: "Paid",
+        }
+      : s === "unpaid"
+      ? {
+          cls: "bg-amber-50 text-amber-600 border-amber-200",
+          dot: "bg-amber-400 animate-pulse",
+          icon: <Clock className="w-3 h-3" />,
+          label: "Unpaid",
+        }
+      : {
+          cls: "bg-red-50 text-red-500 border-red-200",
+          dot: "bg-red-400",
+          icon: <XCircle className="w-3 h-3" />,
+          label: status || "Unknown",
+        };
 
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${config.cls}`}>
@@ -68,44 +84,6 @@ const inputCls = (hasIcon = true, error = false) =>
     error ? "border-red-300 focus:ring-red-200" : "border-slate-200 focus:ring-blue-800/10"
   } rounded-xl text-xs font-bold text-slate-700 focus:ring-4 outline-none transition-all`;
 
-// ─── Delete Modal ─────────────────────────────────────────────────────────────
-const DeleteModal = ({ bill, onConfirm, onCancel, deleting }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-blue-950/60 backdrop-blur-sm px-4">
-    <div className="bg-white rounded-3xl shadow-2xl shadow-blue-950/20 w-full max-w-md p-7 border border-blue-900/10 animate-[fadeUp_0.2s_ease]">
-      <div className="flex items-center justify-between mb-5">
-        <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
-        </div>
-        <button onClick={onCancel} className="p-2 rounded-xl hover:bg-slate-100 transition-colors">
-          <X className="w-4 h-4 text-slate-400" />
-        </button>
-      </div>
-      <h2 className="text-lg font-black text-blue-950 mb-1">Delete Bill</h2>
-      <p className="text-sm text-slate-500 mb-6">
-        Are you sure you want to remove bill{" "}
-        <span className="font-bold text-blue-900">#{bill?.id}</span> for{" "}
-        <span className="font-bold text-blue-900">{bill?.patient_name}</span>? This action cannot be undone.
-      </p>
-      <div className="flex gap-3">
-        <button
-          onClick={onCancel}
-          className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={deleting}
-          className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-        >
-          {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-          {deleting ? "Deleting..." : "Yes, Delete"}
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
 // ─── Add Bill Modal ───────────────────────────────────────────────────────────
 const AddBillModal = ({ onClose, onSuccess }) => {
 const INIT = {
@@ -114,9 +92,19 @@ const INIT = {
   medicine_cost: "",
 };
   const [form, setForm] = useState(INIT);
+  const [appointments, setAppointments] = useState([]);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+const fetchAppointments = async () => {
+  if (appointments.length > 0) return;
 
+  try {
+    const res = await axiosInstance.get("/admin/appointments");
+    setAppointments(res.data || []);
+  } catch (error) {
+    console.error("Failed to load appointments");
+  }
+};
 const validate = () => {
   const e = {};
 
@@ -133,6 +121,8 @@ const validate = () => {
 
   return e;
 };
+
+
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -184,13 +174,21 @@ const validate = () => {
         {/* Form */}
         <div className="space-y-4">
 <FormField label="Select Appointment" icon={ClipboardList} error={errors.appointment_id}>
-  <input
-    type="number"
-    placeholder="Enter Appointment ID"
-    className={inputCls(true, !!errors.appointment_id)}
-    value={form.appointment_id}
-    onChange={(e) => handleChange("appointment_id", e.target.value)}
-  />
+<select
+  className={inputCls(true, !!errors.appointment_id)}
+  value={form.appointment_id}
+  onChange={(e) => handleChange("appointment_id", e.target.value)}
+  onFocus={fetchAppointments}
+>
+    <option value="">Select Appointment</option>
+
+    {appointments.map((a) => (
+      <option key={a.id} value={a.id}>
+        Appointment #{a.id}
+      </option>
+    ))}
+
+  </select>
 </FormField>
 
           <div className="grid grid-cols-2 gap-3">
@@ -252,20 +250,19 @@ const validate = () => {
     </div>
   );
 };
-
+const STATUS_OPTIONS = ["unpaid", "paid"];
 // ─── Edit Bill Modal ──────────────────────────────────────────────────────────
 const EditBillModal = ({ bill, onClose, onSuccess }) => {
   const [form, setForm] = useState({
     consultation_fee: bill.consultation_fee || "",
     medicine_cost:    bill.medicine_cost    || "",
-    payment_status:   bill.payment_status?.toLowerCase() || "pending",
+    payment_status:   bill.payment_status?.toLowerCase() || "unpaid",
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
 
 const validate = () => {
   const e = {};
-  if (!form.appointment_id) e.appointment_id = "Appointment ID is required";
   if (!form.consultation_fee) e.consultation_fee = "Consultation fee is required";
   else if (isNaN(form.consultation_fee) || Number(form.consultation_fee) < 0)
     e.consultation_fee = "Enter valid amount";
@@ -284,12 +281,9 @@ const validate = () => {
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
     try {
-      await axiosInstance.put(`/admin/billing/${bill.id}`, {
-        consultation_fee: Number(form.consultation_fee),
-        medicine_cost:    Number(form.medicine_cost || 0),
-        total_amount:     Number(form.consultation_fee || 0) + Number(form.medicine_cost || 0),
-        payment_status:   form.payment_status,
-      });
+    await axiosInstance.put(`/admin/billing/${bill.id}`, {
+  payment_status: form.payment_status,
+});
       onSuccess(`Bill #${bill.id} updated successfully.`);
       onClose();
     } catch (err) {
@@ -338,24 +332,20 @@ const validate = () => {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Consult Fee (₹)" icon={DollarSign} error={errors.consultation_fee}>
-              <input
-                type="number"
-                min="0"
-                placeholder="e.g. 500"
-                className={inputCls(true, !!errors.consultation_fee)}
-                value={form.consultation_fee}
-                onChange={(e) => handleChange("consultation_fee", e.target.value)}
-              />
+             <input
+  type="number"
+  disabled
+  className={`${inputCls(true, false)} bg-slate-100 cursor-not-allowed`}
+  value={form.consultation_fee}
+/>
             </FormField>
             <FormField label="Medicine Cost (₹)" icon={Pill} error={errors.medicine_cost}>
               <input
-                type="number"
-                min="0"
-                placeholder="e.g. 200"
-                className={inputCls(true, !!errors.medicine_cost)}
-                value={form.medicine_cost}
-                onChange={(e) => handleChange("medicine_cost", e.target.value)}
-              />
+  type="number"
+  disabled
+  className={`${inputCls(true, false)} bg-slate-100 cursor-not-allowed`}
+  value={form.medicine_cost}
+/>
             </FormField>
           </div>
 
@@ -419,8 +409,6 @@ const AdminBilling = () => {
   const [toast, setToast]               = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editTarget, setEditTarget]     = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleting, setDeleting]         = useState(false);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchBilling = async () => {
@@ -439,21 +427,7 @@ const AdminBilling = () => {
   useEffect(() => { fetchBilling(); }, []);
   useEffect(() => { setPage(1); }, [search, filterStatus]);
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    setDeleting(true);
-    try {
-      await axiosInstance.delete(`/admin/billing/${deleteTarget.id}`);
-      setBilling((prev) => prev.filter((b) => b.id !== deleteTarget.id));
-      showToast(`Bill #${deleteTarget.id} removed successfully.`, "success");
-    } catch (err) {
-      showToast("Failed to delete bill.", "error");
-    } finally {
-      setDeleting(false);
-      setDeleteTarget(null);
-    }
-  };
+
 
   // ── Toast ──────────────────────────────────────────────────────────────────
   const showToast = (msg, type = "success") => {
@@ -478,12 +452,12 @@ const AdminBilling = () => {
   const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const totalRevenue  = billing.filter(b => b.payment_status?.toLowerCase() === "paid").reduce((s, b) => s + Number(b.total_amount || 0), 0);
-  const pendingAmount = billing.filter(b => b.payment_status?.toLowerCase() === "pending").reduce((s, b) => s + Number(b.total_amount || 0), 0);
+  const pendingAmount = billing.filter(b => b.payment_status?.toLowerCase() === "unpaid").reduce((s, b) => s + Number(b.total_amount || 0), 0);
 
   const stats = [
     { label: "Total Records",  value: billing.length,                                                             icon: ClipboardList, color: "from-blue-900 to-blue-700",       glow: "shadow-blue-800/30"    },
     { label: "Total Revenue",  value: `₹${totalRevenue.toLocaleString()}`,                                        icon: DollarSign,    color: "from-emerald-600 to-emerald-400", glow: "shadow-emerald-500/30" },
-    { label: "Pending Amount", value: `₹${pendingAmount.toLocaleString()}`,                                       icon: Clock,         color: "from-amber-500 to-amber-400",     glow: "shadow-amber-500/30"   },
+    { label: "unpaid Amount", value: `₹${pendingAmount.toLocaleString()}`,                                       icon: Clock,         color: "from-amber-500 to-amber-400",     glow: "shadow-amber-500/30"   },
     { label: "Paid Bills",     value: billing.filter(b => b.payment_status?.toLowerCase() === "paid").length,     icon: CheckCircle2,  color: "from-violet-600 to-violet-400",   glow: "shadow-violet-500/30"  },
   ];
 
@@ -514,15 +488,6 @@ const AdminBilling = () => {
         </div>
       )}
 
-      {/* ── Delete Modal ──────────────────────────────────────────────────────── */}
-      {deleteTarget && (
-        <DeleteModal
-          bill={deleteTarget}
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-          deleting={deleting}
-        />
-      )}
 
       {/* ── Add Bill Modal ────────────────────────────────────────────────────── */}
       {showAddModal && (
@@ -552,7 +517,7 @@ const AdminBilling = () => {
             <div className="flex items-center gap-3 flex-wrap">
               {/* Status Filter Pills */}
               <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
-                {["all", "paid", "pending"].map((s) => (
+                {["all", "paid", "unpaid"].map((s) => (
                   <button
                     key={s}
                     onClick={() => setFilterStatus(s)}
@@ -738,14 +703,6 @@ const AdminBilling = () => {
                           >
                             <Pencil className="w-3 h-3" />
                             Edit
-                          </button>
-                          {/* ── DELETE BUTTON ── */}
-                          <button
-                            onClick={() => setDeleteTarget(bill)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-200 hover:border-red-500 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                            Remove
                           </button>
                         </div>
                       </td>
